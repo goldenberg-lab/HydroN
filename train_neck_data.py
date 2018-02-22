@@ -3,7 +3,9 @@ import tensorflow as tf
 import tensorflow.contrib.slim.nets as nets
 import numpy as np
 from tensorflow.python.tools import inspect_checkpoint as chkp
-VAL_SIZE = 0.2
+from sklearn.metrics import average_precision_score
+
+VAL_SIZE = 0.05
 
 
 images = np.load('/home/yasaman/HN/neck_images.npy')
@@ -48,6 +50,7 @@ iterator = tf.data.Iterator.from_structure(dataset.output_types, dataset.output_
 next_images, next_labels = iterator.get_next()
 
 logits, intermed = vgg.vgg_16(next_images, num_classes=2)
+prob = tf.nn.softmax(logits)
 
 train_init_op = iterator.make_initializer(dataset)
 val_init_op = iterator.make_initializer(val_set)
@@ -99,9 +102,14 @@ with tf.Session() as sess:
 			writer.add_summary(summ, i)
 			print(sess.run(total_loss))
 			saver.save(sess, us_path)
+	# print error on evaluation set
+	sess.run(val_init_op, feed_dict={val_images:test_images,
+	val_labels:test_labels})
+	probabilities = sess.run(prob)
 	writer.close()
 
 
-
+avg_prec_score = average_precision_score(test_labels, probabilities)
+print("average precision score on validation set", avg_prec_score) 
 
 

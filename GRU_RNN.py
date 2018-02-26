@@ -17,6 +17,12 @@ def scoped_property(func):
 	return decorator
 
 
+def weight_bias(in_size, out_size):
+	weight = tf.truncated_normal([in_size, out_size], stddev=0.01)
+	bias = tf.constant(0.1, shape=[out_size])
+	return tf.Variable(weight), tf.Variable(bias)
+
+
 class RNN_GRU():
 
 	def __init__(self, features, decision,
@@ -32,8 +38,8 @@ class RNN_GRU():
 
 
 	@scoped_property
-	def input_length(self):
-		used = tf.sign(tf.reduce_max(tf.abs(self.data), reduction_indices=2))
+	def length(self):
+		used = tf.sign(tf.reduce_max(tf.abs(self.inputs), reduction_indices=2))
 		length = tf.reduce_sum(used, reduction_indices=1)
 		length = tf.cast(length, tf.int32)
 		return length
@@ -42,8 +48,8 @@ class RNN_GRU():
 	@scoped_property
 	def logits(self):
 		# default tanh activation
-		layers = [tf.nn.rnn_cell.GRUCell(self._num_hidden) for i in range(self.num_layers)]
-		multi_rnn_cell = tf.nn.rnn_cell.MultiRNNCell(rnn_layers)
+		layers = [tf.nn.rnn_cell.GRUCell(self._num_hidden) for i in range(self._num_layers)]
+		multi_rnn_cell = tf.nn.rnn_cell.MultiRNNCell(layers)
 		outputs , final_state = tf.nn.dynamic_rnn(cell=multi_rnn_cell,
 				 inputs=self.inputs,
 				 dtype=tf.float32,
@@ -51,26 +57,28 @@ class RNN_GRU():
 		## softmax
 		num_classes = int(self.target.get_shape()[1])
 		# last output 
-		output = tf.transpose(output, [1, 0, 2])
-		last = tf.gather(output, int(output.get_shape()[0]) - 1)
-		weight, bias = self._weight_bias(self._num_hidden,num_classes)
+		outputs = tf.transpose(outputs, [1, 0, 2])
+		last = tf.gather(outputs, int(outputs.get_shape()[0]) - 1)
+		weight, bias = weight_bias(self._num_hidden,num_classes)
 		logits = tf.matmul(last, weight) + bias
 		return logits
 
 
-		@scoped_property
-		def cost(self):
-			cross_entropy = tf.nn.softmax_cross_entropy_with_logits_v2(labels=self.target, logits=self.logits)
-			return cross_entropy
+	@scoped_property
+	def cost(self):
+		cross_entropy = tf.nn.softmax_cross_entropy_with_logits_v2(labels=self.target, logits=self.logits)
+		return cross_entropy
 
 
-		@scoped_property
-		def optimize(self):
-			optimizer = tf.train.GradientDescentOptimizer(0.001)
-			return optimizer.minimize(self.cost)
+	@scoped_property
+	def optimize(self):
+		optimizer = tf.train.GradientDescentOptimizer(0.001)
+		return optimizer.minimize(self.cost)
 
 
+	
 
+		
 
 
 

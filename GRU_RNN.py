@@ -18,8 +18,8 @@ def scoped_property(func):
 
 
 def weight_bias(in_size, out_size):
-	weight = tf.truncated_normal([in_size, out_size], stddev=0.01)
-	bias = tf.constant(0.1, shape=[out_size])
+	weight = tf.truncated_normal([in_size, out_size], stddev=0.1)
+	bias = tf.constant(0.0, shape=[out_size])
 	return tf.Variable(weight), tf.Variable(bias)
 
 
@@ -48,7 +48,7 @@ class RNN_GRU():
 	@scoped_property
 	def logits(self):
 		# default tanh activation
-		layers = [tf.nn.rnn_cell.GRUCell(self._num_hidden) for i in range(self._num_layers)]
+		layers = [tf.nn.rnn_cell.LSTMCell(self._num_hidden) for i in range(self._num_layers)]
 		multi_rnn_cell = tf.nn.rnn_cell.MultiRNNCell(layers)
 		outputs , final_state = tf.nn.dynamic_rnn(cell=multi_rnn_cell,
 				 inputs=self.inputs,
@@ -66,13 +66,13 @@ class RNN_GRU():
 
 	@scoped_property
 	def cost(self):
-		cross_entropy = tf.nn.softmax_cross_entropy_with_logits_v2(labels=self.target, logits=self.logits)
+		cross_entropy = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits_v2(labels=self.target, logits=self.logits))
 		return cross_entropy
 
 
 	@scoped_property
 	def optimize(self):
-		optimizer = tf.train.GradientDescentOptimizer(0.001)
+		optimizer = tf.train.AdagradOptimizer(0.01)
 		return optimizer.minimize(self.cost)
 
 

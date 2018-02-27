@@ -42,25 +42,36 @@ class RNN_GRU():
 		used = tf.sign(tf.reduce_max(tf.abs(self.inputs), reduction_indices=2))
 		length = tf.reduce_sum(used, reduction_indices=1)
 		length = tf.cast(length, tf.int32)
+		length = tf.reshape(length, [-1])
 		return length
 
 
 	@scoped_property
-	def logits(self):
+	def rnn_out(self):
 		# default tanh activation
-		layers = [tf.nn.rnn_cell.LSTMCell(self._num_hidden) for i in range(self._num_layers)]
+		layers = [tf.nn.rnn_cell.GRUCell(self._num_hidden) for i in range(self._num_layers)]
 		multi_rnn_cell = tf.nn.rnn_cell.MultiRNNCell(layers)
 		outputs , final_state = tf.nn.dynamic_rnn(cell=multi_rnn_cell,
-				 inputs=self.inputs,
-				 dtype=tf.float32,
+				inputs=self.inputs,
+				dtype=tf.float32,
 				sequence_length=self.length)
-		## softmax
+		return outputs
+		
+
+	@scoped_property
+	def logits(self):			
+		## gather last output in time for softmax
 		num_classes = int(self.target.get_shape()[1])
-		# last output 
-		outputs = tf.transpose(outputs, [1, 0, 2])
-		last = tf.gather(outputs, int(outputs.get_shape()[0]) - 1)
-		weight, bias = weight_bias(self._num_hidden,num_classes)
-		logits = tf.matmul(last, weight) + bias
+		batch_size = tf.shape(self.rnn_out)[0]
+		max_seq_len = tf.shape(self.rnn_out)[1]
+		# note output size = num_hidden
+		flat_out = tf.reshape(self.rnn_out, [-1, self._num_hidden])	
+		# index into different element of the batch
+		flat_last_indices = (tf.range(0, batch_size) * max_seq_len
+		) + (self.length -1)
+		self._last = tf.gather(flat_out, flat_last_indices)
+		self._weight, self._bias = weight_bias(self._num_hidden,num_classes)
+		logits = tf.matmul(self._last, self._weight) + self._bias
 		return logits
 
 

@@ -2,7 +2,7 @@ import tensorflow as tf
 import numpy as np
 import os
 import os.path
-from data_utils import subj_images, read_csv, _int64_feature, _bytes_feature
+from data_utils import subj_images, read_csv, make_seq_example
 
 
 
@@ -25,19 +25,7 @@ all_examples = read_csv(os.path.join(BASE_PATH, CLINC_PATH))
 
 with tf.python_io.TFRecordWriter(TFREC_HN_PATH) as writer:
 	for study_no,info in all_examples.items():
-		# info[3] label 
-		# TODO map these 
-		path_to_subj = os.path.join(label_map[info[3]], study_no)
-		images = subj_images(path_to_subj)
-		images_raw = images.tostring()
-		feature ={
-			'id': _int64_feature(int(study_no)),
-			'gender': _int64_feature(info[0]),
-			'base_age': _int64_feature(info[1]),
-			'times': _bytes_feature(info[2].tostring()),
-			'image': _bytes_feature(images_raw),
-			'label':_int64_feature(info[3])}
-		example = tf.train.Example(features=tf.train.Features(feature=feature))
+		example = make_seq_example(study_no, info, label_map) 	
 		writer.write(example.SerializeToString())
 
 

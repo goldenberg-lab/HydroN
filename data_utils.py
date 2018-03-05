@@ -9,12 +9,34 @@ import tensorflow as tf
 
 IMG_DIM = 224
 
-def _int64_feature(value):
-	return tf.train.Feature(int64_list=tf.train.Int64List(value=[value]))
+def _parse_function(example_proto):
+	context_feature ={
+		'id': tf.FixedLenFeature([], tf.int64),
+		'gender': tf.FixedLenFeature([], tf.int64),
+		'age':  tf.FixedLenFeature([], tf.int64),
+		'label': tf.FixedLenFeature([], tf.int64)}
+	sequence_feature = {	
+		'times': tf.FixedLenSequenceFeature([], tf.int64),
+		'images': tf.FixedLenSequenceFeature([], tf.string)}
 
+	context_parsed, sequence_parsed = tf.parse_single_sequence_example(
+		example_proto, context_features=context_feature,
+		sequence_features=sequence_feature)
 
-def _bytes_feature(value):
-	return tf.train.Feature(bytes_list=tf.train.BytesList(value=[value]))
+	id_no = tf.cast(context_parsed['id'], tf.int64)
+	image = tf.decode_raw(sequence_parsed['images'], tf.float32)
+	image = tf.reshape(image, [-1, IMG_DIM, IMG_DIM, 3])
+	times = tf.cast(sequence_parsed['times'], tf.int64)
+	base_age = tf.cast(context_parsed['age'], tf.int64)
+	gender = tf.cast(context_parsed['gender'], tf.int64)
+	label = tf.cast(context_parsed['label'], tf.int64)
+	return  (tf.expand_dims(id_no, axis=0),
+		tf.expand_dims(gender, axis=0),
+		tf.expand_dims(base_age,axis=0),
+		tf.expand_dims(label, axis=0),
+		times,
+		image)
+
 
 
 def make_seq_example(id_no, info, label_map):

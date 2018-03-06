@@ -47,15 +47,27 @@ labels = tf.reshape(labels, [-1, 2])
 rnn = RNN_GRU(feat_seq, labels)
 
 # restore CNN weights
-all_global_var = tf.global_variables()
+all_cnn_var = tf.global_variables(scope='vgg_16')
+all_rnn_var = tf.global_variables(scope='RNN')
+restorer = tf.train.Saver(all_cnn_var)
 
-#restorer = tf.train.Saver(...)
+init_rnn_var = tf.variables_initializer(all_rnn_var)
 
-print_tensors_in_checkpoint_file(PATH_CNN_WEIGHTS, tensor_name='', all_tensors=False, all_tensor_names=True)
+#print_tensors_in_checkpoint_file(PATH_CNN_WEIGHTS, tensor_name='', all_tensors=False, all_tensor_names=True)
 
 with tf.Session() as sess:
+	# initialize variables and dataset iterator
+	restorer.restore(sess,PATH_CNN_WEIGHTS)
+	sess.run(init_rnn_var)
 	sess.run(iterator.initializer, feed_dict={input_files:file_names})
 	all_images, all_times, first_times = sess.run((all_batch_images, all_batch_times, next_times))
 	print("all_times", all_times.shape, "all images shape", all_images.shape, "original batch time  shape ", first_times.shape)
 	print(feat_seq.get_shape(), "label shape", labels.get_shape())
-#	print("Global variables ....", tf.global_variables()) 
+		
+	for i in range(1000):
+		if (i%100 == 0):
+			print(sess.run(rnn.cost))
+		sess.run(rnn.optimize)
+
+#	print("CNN variables ....", all_cnn_var) 
+#	print("RNN variables ... ", all_rnn_var)

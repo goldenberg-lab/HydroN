@@ -38,6 +38,21 @@ def _parse_function(example_proto):
 		image)
 
 
+def order_match(images, times):
+	''' given list of images and their corresponding time stamps, return 
+	array of images sorted in axis 0 by time, and ordered list of time
+	differences.
+	'''
+	ordered_images = np.zeros(images.shape, dtype=np.float32)
+	idx_sorted = sorted(range(len(times)), key= lambda i: times[i])
+	ordered_times = [times[i] for i in idx_sorted]	
+	for i in range(len(idx_sorted)):
+		ordered_images[i,:,:,:] = images[idx_sorted[i],:,:,:]
+	# take difference
+	for i in range(len(ordered_times)-1,0, -1):
+		ordered_times[i] = ordered_times[i] - ordered_times[i-1]
+	return ordered_images, ordered_times
+
 
 def make_seq_example(id_no, info, label_map):
 	''' return a tf.train.SequenceExample instance for single example '''
@@ -51,6 +66,7 @@ def make_seq_example(id_no, info, label_map):
 		raise TypeError('There are more images than time stamps, some image must be missing a time stamp')
 	# if there are more time stamps take the ones that have an image
 	info['times'] = info['times'][0:images.shape[0]]
+	images, times = order_match(images, info['times']) 
 	example = tf.train.SequenceExample()
 	# non sequential features
 	example.context.feature['gender'].int64_list.value.append(info['gender'])	
@@ -65,7 +81,7 @@ def make_seq_example(id_no, info, label_map):
 	times_fl = example.feature_lists.feature_list['times']
 	for i in range(len(info['times'])):
 		images_fl.feature.add().bytes_list.value.append(images[i].tostring())
-		times_fl.feature.add().int64_list.value.append(info['times'][i])
+		times_fl.feature.add().int64_list.value.append(times[i])
 	return example
 	
 	

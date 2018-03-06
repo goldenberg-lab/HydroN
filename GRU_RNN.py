@@ -11,8 +11,9 @@ def scoped_property(func):
 	@functools.wraps(func)
 	def decorator(self):
 		if not hasattr(self, attribute):
-			with tf.variable_scope(func.__name__):
-				setattr(self, attribute, func(self))
+			with tf.variable_scope('RNN'):
+				with tf.variable_scope(func.__name__):
+					setattr(self, attribute, func(self))
 		return getattr(self, attribute)
 	return decorator
 

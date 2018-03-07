@@ -84,7 +84,7 @@ class RNN_GRU():
 
 	@scoped_property
 	def optimize(self):
-		optimizer = tf.train.AdagradOptimizer(0.01)
+		optimizer = tf.train.AdagradOptimizer(0.001)
 		return optimizer.minimize(self.cost)
 
 

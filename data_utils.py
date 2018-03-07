@@ -5,7 +5,10 @@ import os
 import os.path
 import csv
 import tensorflow as tf
-
+from explore_data_utils import display
+import scipy.ndimage
+from skimage.transform import resize
+from skimage import img_as_float, img_as_ubyte
 
 IMG_DIM = 224
 
@@ -59,6 +62,7 @@ def make_seq_example(id_no, info, label_map):
 	# get images 
 	path_to_subj = os.path.join(label_map[info['label']], id_no)
 	images = subj_images(path_to_subj)
+	# debugging if (id_no == '4'):display(images, 4, 2)
 	# check all images have a time
 	if (images.shape[0] > len(info['times'])):
 		print('subj no ', id_no, 'num images: ', images.shape[0],
@@ -130,18 +134,23 @@ def subj_images(image_dir):
 	all_subj_images =  np.zeros((num_images, IMG_DIM, IMG_DIM, 3), dtype=np.float32) 
 	for i in range(num_images):
 		image = Image.open(os.path.join(image_dir, image_names[i]))
-		all_subj_images[i,:,:,:] = _process_image(image)
+		all_subj_images[i,:,:,:] = _process_image(image, 6)
 	return all_subj_images	
-		
 
-def _process_image(im):
+	
+def _process_image(im, sigma):
 	''' im is an image object.
 	'''
-	im = im.resize((IMG_DIM, IMG_DIM), Image.LANCZOS)
-	im_arr = np.asarray(im, dtype=np.float32)
-	return im_arr[:,:,:3]
+	im_arr = np.asarray(im, dtype=np.ubyte)
+	# ignore alpha channel
+	image = im_arr[:,:,:3]
+	image = img_as_float(image)
+	#image = image - image.mean()
+	#image = image - image.std()
+	image = scipy.ndimage.filters.gaussian_filter(image, sigma)
+	image = resize(image, (IMG_DIM, IMG_DIM))
+
+	return image
 	
-
-
 
 

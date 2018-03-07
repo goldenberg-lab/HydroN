@@ -4,7 +4,7 @@ import numpy as np
 from data_utils import _parse_function
 from GRU_RNN import RNN_GRU
 from tensorflow.python.tools.inspect_checkpoint import print_tensors_in_checkpoint_file
-
+from explore_data_utils import display
 
 BATCH_SIZE = 12
 slim = tf.contrib.slim
@@ -44,7 +44,7 @@ feat_seq = tf.concat([extr_feat, all_batch_times], axis=2)
 labels = tf.one_hot(next_label, depth=2)
 labels = tf.reshape(labels, [-1, 2])
 
-rnn = RNN_GRU(feat_seq, labels)
+rnn = RNN_GRU(feat_seq, labels, num_layers=2)
 
 # restore CNN weights
 all_cnn_var = tf.global_variables(scope='vgg_16')
@@ -61,9 +61,11 @@ with tf.Session() as sess:
 	sess.run(init_rnn_var)
 	sess.run(iterator.initializer, feed_dict={input_files:file_names})
 	all_images, all_times, first_times = sess.run((all_batch_images, all_batch_times, next_times))
-	print("all_times", all_times.shape, "all images shape", all_images.shape, "original batch time  shape ", first_times.shape)
+	print("all_times", all_times.shape, "all images shape",
+		 all_images.shape, "original batch time  shape ",
+		 first_times)
 	print(feat_seq.get_shape(), "label shape", labels.get_shape())
-		
+	#display(all_images[0:24 ,:,:,:], 4,6)	
 	for i in range(1000):
 		if (i%100 == 0):
 			print(sess.run(rnn.cost))

@@ -26,6 +26,6 @@ with tf.Session() as sess:
 	print("times .. ", first_times, "id ... ", first_id)
 	print("image ..", first_images.shape)
 	plt.figure()
-	plt.imshow(first_images[0,0,:,:,:])
+	plt.imshow(first_images[1,0,:,:,:])
 	plt.show()
 

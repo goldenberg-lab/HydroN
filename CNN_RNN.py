@@ -21,11 +21,12 @@ dataset = tf.data.TFRecordDataset(input_files)
 dataset = dataset.map(_parse_function)
 dataset = dataset.repeat()
 dataset = dataset.padded_batch(BATCH_SIZE, padded_shapes=(tf.TensorShape([None]),
-	tf.TensorShape([None]),tf.TensorShape([None]), tf.TensorShape([None]),
-		tf.TensorShape([None]),tf.TensorShape([None, 224, 224, 3])))
+		tf.TensorShape([None]),tf.TensorShape([None]),
+		tf.TensorShape([None]), tf.TensorShape([None]),
+		tf.TensorShape([None]), tf.TensorShape([None, 224, 224, 3])))
 
 iterator = dataset.make_initializable_iterator()
-next_id, next_gender, next_age, next_label, next_times, next_images = iterator.get_next()
+next_id, next_gender, next_age, next_label, next_length, next_times, next_images = iterator.get_next()
 
 all_batch_images = tf.reshape(next_images, [-1, 224, 224, 3])
 all_batch_times = tf.reshape(next_times, [BATCH_SIZE, -1, 1])
@@ -44,7 +45,9 @@ feat_seq = tf.concat([extr_feat, all_batch_times], axis=2)
 labels = tf.one_hot(next_label, depth=2)
 labels = tf.reshape(labels, [-1, 2])
 
-rnn = RNN_GRU(feat_seq, labels, num_layers=2)
+lengths = tf.reshape(next_length, [BATCH_SIZE])
+
+rnn = RNN_GRU(feat_seq, labels, lengths, num_layers=2)
 
 # restore CNN weights
 all_cnn_var = tf.global_variables(scope='vgg_16')

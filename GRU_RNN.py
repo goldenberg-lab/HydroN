@@ -26,25 +26,16 @@ def weight_bias(in_size, out_size):
 
 class RNN_GRU():
 
-	def __init__(self, features, decision,
-		 num_hidden=512, num_layers=1):
+	def __init__(self, features, decision, lengths,
+		num_hidden=512, num_layers=1):
 		self.inputs = features
 		self.target = decision
 		self._num_hidden = num_hidden
 		self._num_layers = num_layers
-		self.length
+		self._length = lengths
 		self.logits
 		self.cost
 		self.optimize
-
-
-	@scoped_property
-	def length(self):
-		used = tf.sign(tf.reduce_max(tf.abs(self.inputs), reduction_indices=2))
-		length = tf.reduce_sum(used, reduction_indices=1)
-		length = tf.cast(length, tf.int32)
-		length = tf.reshape(length, [-1])
-		return length
 
 
 	@scoped_property
@@ -55,7 +46,7 @@ class RNN_GRU():
 		outputs , final_state = tf.nn.dynamic_rnn(cell=multi_rnn_cell,
 				inputs=self.inputs,
 				dtype=tf.float32,
-				sequence_length=self.length)
+				sequence_length=self._length)
 		return outputs
 		
 
@@ -69,7 +60,7 @@ class RNN_GRU():
 		flat_out = tf.reshape(self.rnn_out, [-1, self._num_hidden])	
 		# index into different element of the batch
 		flat_last_indices = (tf.range(0, batch_size) * max_seq_len
-		) + (self.length -1)
+		) + (self._length -1)
 		self._last = tf.gather(flat_out, flat_last_indices)
 		self._weight, self._bias = weight_bias(self._num_hidden,num_classes)
 		logits = tf.matmul(self._last, self._weight) + self._bias

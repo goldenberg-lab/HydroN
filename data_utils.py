@@ -17,7 +17,8 @@ def _parse_function(example_proto):
 		'id': tf.FixedLenFeature([], tf.int64),
 		'gender': tf.FixedLenFeature([], tf.int64),
 		'age':  tf.FixedLenFeature([], tf.int64),
-		'label': tf.FixedLenFeature([], tf.int64)}
+		'label': tf.FixedLenFeature([], tf.int64),
+		'len': tf.FixedLenFeature([], tf.int64)}
 	sequence_feature = {	
 		'times': tf.FixedLenSequenceFeature([], tf.int64),
 		'images': tf.FixedLenSequenceFeature([], tf.string)}
@@ -33,10 +34,12 @@ def _parse_function(example_proto):
 	base_age = tf.cast(context_parsed['age'], tf.int64)
 	gender = tf.cast(context_parsed['gender'], tf.int64)
 	label = tf.cast(context_parsed['label'], tf.int64)
+	length = tf.cast(context_parsed['len'], tf.int32)
 	return  (tf.expand_dims(id_no, axis=0),
 		tf.expand_dims(gender, axis=0),
 		tf.expand_dims(base_age,axis=0),
 		tf.expand_dims(label, axis=0),
+		tf.expand_dims(length, axis=0),
 		times,
 		image)
 
@@ -74,12 +77,12 @@ def make_seq_example(id_no, info, label_map):
 	example = tf.train.SequenceExample()
 	# non sequential features
 	example.context.feature['gender'].int64_list.value.append(info['gender'])	
-	
 	example.context.feature['age'].int64_list.value.append(info['age_baseline'])	
-	
 	example.context.feature['label'].int64_list.value.append(info['label'])
-	
 	example.context.feature['id'].int64_list.value.append(int(id_no))
+	example.context.feature['len'].int64_list.value.append(len(times))
+
+
 	# two sequential featues
 	images_fl = example.feature_lists.feature_list['images']
 	times_fl = example.feature_lists.feature_list['times']

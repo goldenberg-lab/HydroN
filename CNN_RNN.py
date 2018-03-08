@@ -2,14 +2,13 @@ import tensorflow as tf
 import tensorflow.contrib.slim.nets as nets
 import numpy as np
 from data_utils import _parse_function
-from GRU_RNN import RNN_GRU
-from tensorflow.python.tools.inspect_checkpoint import print_tensors_in_checkpoint_file
+from GRU_RNN import RNN_GRU, weight_bias
 from explore_data_utils import display
 
 BATCH_SIZE = 12
 slim = tf.contrib.slim
 vgg = nets.vgg
-
+STATE_SIZE = 512
 
 
 PATH_CNN_WEIGHTS = '/home/yasaman/HN/neck_us_trained'
@@ -32,6 +31,18 @@ all_batch_images = tf.reshape(next_images, [-1, 224, 224, 3])
 all_batch_times = tf.reshape(next_times, [BATCH_SIZE, -1, 1])
 all_batch_times = tf.cast(all_batch_times, tf.float32)
 
+# prepare context features and feed them to RNN as first state
+gender = tf.one_hot(next_gender, depth=2, dtype=tf.int64)
+gender = tf.reshape(gender, [-1, 2])
+context_feat = tf.concat([gender, next_age], axis=1)
+context_feat = tf.reshape(context_feat, [-1, 3])
+num_ctx_feat = int(context_feat.get_shape()[1])
+print(int(num_ctx_feat))
+with tf.variable_scope('RNN'):
+	W_context, _ = weight_bias(num_ctx_feat, STATE_SIZE)
+
+context_feat = tf.cast(context_feat, tf.float32)
+initial_state = tf.matmul(context_feat, W_context)
 
 # num classes =2 because finetuned on neck ultrasound images, want to restore all weights, but will not use all of them
 logits, intermed = vgg.vgg_16(all_batch_images, num_classes=2)
@@ -47,7 +58,7 @@ labels = tf.reshape(labels, [-1, 2])
 
 lengths = tf.reshape(next_length, [BATCH_SIZE])
 
-rnn = RNN_GRU(feat_seq, labels, lengths, num_layers=2)
+rnn = RNN_GRU(feat_seq, labels, lengths, init_state=initial_state, num_hidden=STATE_SIZE,  num_layers=1)
 
 # restore CNN weights
 all_cnn_var = tf.global_variables(scope='vgg_16')
@@ -56,7 +67,6 @@ restorer = tf.train.Saver(all_cnn_var)
 
 init_rnn_var = tf.variables_initializer(all_rnn_var)
 
-#print_tensors_in_checkpoint_file(PATH_CNN_WEIGHTS, tensor_name='', all_tensors=False, all_tensor_names=True)
 
 with tf.Session() as sess:
 	# initialize variables and dataset iterator
@@ -74,5 +84,3 @@ with tf.Session() as sess:
 			print(sess.run(rnn.cost))
 		sess.run(rnn.optimize)
 
-#	print("CNN variables ....", all_cnn_var) 
-#	print("RNN variables ... ", all_rnn_var)

@@ -22,10 +22,12 @@ dataset = dataset.repeat()
 dataset = dataset.padded_batch(BATCH_SIZE, padded_shapes=(tf.TensorShape([None]),
 		tf.TensorShape([None]),tf.TensorShape([None]),
 		tf.TensorShape([None]), tf.TensorShape([None]),
+		tf.TensorShape([None]), tf.TensorShape([None]),
+		tf.TensorShape([None]), tf.TensorShape([None]),
 		tf.TensorShape([None]), tf.TensorShape([None, 224, 224, 3])))
 
 iterator = dataset.make_initializable_iterator()
-next_id, next_gender, next_age, next_label, next_length, next_times, next_images = iterator.get_next()
+next_id, next_gender, next_age, next_label, next_length, next_circum, next_side, next_etiology, next_vcug, next_times, next_images = iterator.get_next()
 
 all_batch_images = tf.reshape(next_images, [-1, 224, 224, 3])
 all_batch_times = tf.reshape(next_times, [BATCH_SIZE, -1, 1])
@@ -34,8 +36,16 @@ all_batch_times = tf.cast(all_batch_times, tf.float32)
 # prepare context features and feed them to RNN as first state
 gender = tf.one_hot(next_gender, depth=2, dtype=tf.int64)
 gender = tf.reshape(gender, [-1, 2])
-context_feat = tf.concat([gender, next_age], axis=1)
-context_feat = tf.reshape(context_feat, [-1, 3])
+circum = tf.one_hot(next_circum, depth=4, dtype=tf.int64)
+circum = tf.reshape(circum, [-1, 4])
+side = tf.one_hot(next_side, depth=3, dtype=tf.int64)
+side = tf.reshape(side, [-1, 3])
+etiology = tf.one_hot(next_etiology, depth=2, dtype=tf.int64)
+etiology = tf.reshape(etiology, [-1, 2])
+vcug = tf.one_hot(next_vcug, depth=2, dtype=tf.int64)
+vcug = tf.reshape(vcug, [-1, 2])
+context_feat = tf.concat([gender, next_age, circum, side, etiology, vcug], axis=1)
+context_feat = tf.reshape(context_feat, [-1, 14])
 num_ctx_feat = int(context_feat.get_shape()[1])
 print(int(num_ctx_feat))
 with tf.variable_scope('RNN'):
@@ -53,8 +63,8 @@ extr_feat = tf.reshape(extr_feat, [BATCH_SIZE,-1, num_feat])
 feat_seq = tf.concat([extr_feat, all_batch_times], axis=2)
 
 # one hot vectors for labels
-labels = tf.one_hot(next_label, depth=2)
-labels = tf.reshape(labels, [-1, 2])
+labels = tf.one_hot(next_label, depth=3)
+labels = tf.reshape(labels, [-1, 3])
 
 lengths = tf.reshape(next_length, [BATCH_SIZE])
 

@@ -137,7 +137,7 @@ def get_label(example):
 
 def read_csv(path):
 	''' return a dictionary of subject and their clinical info:
-	ID -> {gender: int, baseline_age:int, [us_times]: [int], label:[int]}
+	ID -> {gender: int, baseline_age:int, us_times: [int], label:[int]}
 	'''
 	all_data = dict()
 	with open(path) as clinc_data:

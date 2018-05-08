@@ -72,12 +72,8 @@ def order_match(images, times):
 	return ordered_images, ordered_times
 
 
-def make_seq_example(id_no, info, label_map):
+def make_seq_example(id_no, info, images):
 	''' return a tf.train.SequenceExample instance for single example '''
-	# get images 
-	path_to_subj = os.path.join(label_map[info['surgery']], id_no)
-	images = subj_images(path_to_subj)
-	# debugging if (id_no == '4'):display(images, 4, 2)
 	# check all images have a time
 	if (images.shape[0] > len(info['times'])):
 		print('subj no ', id_no, 'num images: ', images.shape[0],

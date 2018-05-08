@@ -70,6 +70,9 @@ for id_time in id_times:
 	id_images[id_time[0]].append(id_time[1])
 
 
+PATH_TFREC = '/home/yasaman/HydroN/HN/serialized_data/last_im_sample.tfrecords'
+writer = tf.python_io.TFRecordWriter(PATH_TFREC)
+
 
 id_data = dict()
 for stud_id in ids:
@@ -78,12 +81,12 @@ for stud_id in ids:
 	id_data[stud_id]['times'] = [id_data[stud_id]['times'][int(time)-1] for time in id_images[stud_id]]
 	id_data[stud_id]['images'] = get_images_id(stud_id, id_images,
 			id_data[stud_id], image_path)
-
-
-
-
-print(list(id_data.keys()))
-
+	for image_seq in id_data[stud_id]['images']:
+		example = make_seq_example(stud_id, id_data[stud_id], image_seq[-1:])
+	
+		writer.write(example.SerializeToString())
+		print("writing id no", stud_id)
+writer.close()
 
 
 
